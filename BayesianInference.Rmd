@@ -1,0 +1,69 @@
+---
+title: "Bayesian-Inference"
+author: "Samantha-Jo Caetano"
+date: "February 10 or 11 2021"
+output: pdf_document
+---
+
+```{r load-tidy-121341,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(patchwork)
+```
+
+# Introduction to Bayesian Inference
+
+With repeated flipping in the Bayesian setting, with our prior distribution on $\theta$ described in the slides, we would form the posterior distribution as follows:
+
+$$
+p(\theta|X) = \frac{\theta^{\sum_{i=1}^{n}x_{i}}(1-\theta)^{n - \sum_{i=1}^{n}x_{i}}\times 0.2^{I(\theta = 0.7)}0.8^{I(\theta = 0.3)}}{\sum_{\theta = 0.3,0.7}\theta^{\sum_{i=1}^{n}x_{i}}(1-\theta)^{n - \sum_{i=1}^{n}x_{i}}\times 0.2^{I(\theta = 0.7)}0.8^{I(\theta = 0.3)}}
+$$
+
+### Visualization
+
+It is helpful to visualize the prior and posterior, for the observed data. Because both prior and posterior only allow two values, we can do this using a simple bar chart:
+
+```{r binomial-vis1}
+visualize_binomial_priorposterior <- function(sumx,n) {
+  prior <- function(theta) {
+    if (theta == .3) {
+      return(.8)
+    }
+    else if (theta == .7) {
+      return(.2)
+    }
+    0
+  }
+  likelihood <- function(theta) theta^sumx * (1-theta)^(n - sumx)
+  marginal_likelihood <- prior(.7) * likelihood(.7) + prior(.3) * likelihood(.3)
+  posterior <- function(theta) likelihood(theta) * prior(theta) / marginal_likelihood
+  
+  # Plot of the prior and posterior distributions for these observed data
+  tibble(
+    theta = c(.3,.7,.3,.7),
+    value = c(prior(.3),prior(.7),posterior(.3),posterior(.7)),
+    type = c("Prior","Prior","Posterior","Posterior")
+  ) %>%
+    ggplot(aes(x = theta,y = value,fill = type)) +
+    theme_classic() + 
+    geom_bar(stat = "identity",position = "dodge",colour = "black") +
+    labs(title = "Prior and Posterior for theta",
+         subtitle = str_c("Observed data: ",sumx," flips in ",n," throws"),
+         x = "Theta, probability of heads",
+         y = "Prior/Posterior Probability",
+         fill = "") +
+    scale_x_continuous(breaks = c(0.30,0.70),labels = c("0.30","0.70")) +
+    scale_y_continuous(labels = scales::percent_format()) +
+    scale_fill_brewer(palette = "Reds")
+  
+}
+```
+
+Plotting is nice as it lets us compare how different observed data, and different experiments (number of throws) affect the prior/posterior balance of belief:
+
+```{r binomial-vis2,fig.height=10}
+# library(patchwork)
+(visualize_binomial_priorposterior(6,6) | visualize_binomial_priorposterior(6,10)) /
+(visualize_binomial_priorposterior(6,20) | visualize_binomial_priorposterior(6,50)) /
+(visualize_binomial_priorposterior(0,10) | visualize_binomial_priorposterior(1,10)) /
+(visualize_binomial_priorposterior(7,10) | visualize_binomial_priorposterior(10,10))
+```
